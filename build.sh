@@ -9,6 +9,8 @@ SRC=$PWD/src
 OUT=$PWD/java-build
 ROOTFS=$PWD/rootfs
 
+find $BASE/glibc-build
+
 mkdir -p $BASE/java
 cd $BASE/java
 curl -O \
