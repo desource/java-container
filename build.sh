@@ -3,6 +3,7 @@ set -eux
 
 JAVA_VERSION=8.13.0.5-jdk8.0.72-linux_x64
 JAVA_MD5SUM=50b95832b1d072afc178d820e5680687
+
 BASE=$PWD
 SRC=$PWD/src
 OUT=$PWD/java-build
