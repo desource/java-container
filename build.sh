@@ -9,8 +9,6 @@ SRC=$PWD/src
 OUT=$PWD/java-build
 ROOTFS=$PWD/rootfs
 
-find $BASE/glibc-build
-
 mkdir -p $BASE/java
 cd $BASE/java
 curl -O \
@@ -22,25 +20,37 @@ echo "$JAVA_MD5SUM  zulu$JAVA_VERSION.tar.gz" | md5sum -c
 mkdir -p $ROOTFS/opt
 tar xf zulu$JAVA_VERSION.tar.gz
 mv zulu$JAVA_VERSION/jre $ROOTFS/opt/
-rm -rf $ROOTFS/opt/jre/bin/{jjs,keytool,orbd,pack200,policytool,rmid,rmiregistry,servertool,tnameserv,unpack200} $ROOTFS/opt/jre/lib/ext/nashorn.jar
+rm -rf $ROOTFS/opt/jre/bin/{jjs,keytool,orbd,pack200,policytool,rmid,rmiregistry,servertool,tnameserv,unpack200} \
+   $ROOTFS/opt/jre/lib/ext/nashorn.jar
+
+echo 'networkaddress.cache.ttl=10' >> $ROOTFS/opt/jre/lib/security/java.security
+cp /etc/pki/ca-trust/extracted/java/cacerts $ROOTFS/opt/jre/lib/security/cacerts
 
 mkdir -p $ROOTFS/lib64
 cp \
-    $BASE/glibc-build/lib/libc.so.* \
-    $BASE/glibc-build/lib/dlfcn/libdl.so.* \
-    $BASE/glibc-build/lib/nptl/libpthread.so.* \
-    $BASE/glibc-build/lib/elf/ld-linux-x86-64.so.* \
-    $BASE/glibc-build/lib/math/libm.so* \
-    $BASE/glibc-build/lib/nss/libnss_files.so.* \
-    $BASE/glibc-build/lib/resolv/libnss_dns.so.* \
+    $BASE/glibc-build/libc.so.* \
+    $BASE/glibc-build/dlfcn/libdl.so.* \
+    $BASE/glibc-build/nptl/libpthread.so.* \
+    $BASE/glibc-build/elf/ld-linux-x86-64.so.* \
+    $BASE/glibc-build/math/libm.so* \
+    $BASE/glibc-build/nss/libnss_files.so.* \
+    $BASE/glibc-build/resolv/libnss_dns.so.* \
     $ROOTFS/lib64
 
-echo 'networkaddress.cache.ttl=10' >> $ROOTFS/opt/jre/lib/security/java.security
-mkdir -p $ROOTFS/etc
-echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> $ROOTFS/etc/nsswitch.conf
-cp /etc/pki/ca-trust/extracted/java/cacerts $ROOTFS/opt/jre/lib/security/cacerts
-
 ln -s /lib64 $ROOTFS/lib 
+
+mkdir -p $ROOTFS/etc
+echo 'hosts: files mdns4_minimal dns [NOTFOUND=return] mdns4' >> $ROOTFS/etc/nsswitch.conf
+
+cat <<EOF > $ROOTFS/etc/passwd
+root:x:0:0:root:/:/dev/null
+nobody:x:65534:65534:nogroup:/:/dev/null
+EOF
+
+cat <<EOF > $ROOTFS/etc/group
+root:x:0:
+nogroup:x:65534:
+EOF
 
 mkdir -p $OUT
 
