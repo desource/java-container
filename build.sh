@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -eux
 
-JAVA_VERSION=8.13.0.5-jdk8.0.72-linux_x64
-JAVA_MD5SUM=50b95832b1d072afc178d820e5680687
+JAVA_VERSION=8.15.0.1-jdk8.0.92-linux_x64
+JAVA_MD5SUM=509fef886f7c6992d0f6f133c4928ec9
 
 SRC=$PWD/src
 OUT=$PWD/out
