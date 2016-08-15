@@ -1,18 +1,18 @@
 ---
 platform: linux
-
 image_resource:
   type: docker-image
   source:
     repository: quay.io/desource/fedora-build
 
+run:
+  path: src/build.sh
+    
 inputs:
   - name: java-src
     path: src
-  - name: glibc-build
+  - name: glibc
 
 outputs:
-  - name: java-build
-  
-run:
-  path: ./src/build.sh
+  - name: out
+
