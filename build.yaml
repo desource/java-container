@@ -2,8 +2,7 @@
 platform: linux
 image_resource:
   type: docker-image
-  source:
-    repository: quay.io/desource/fedora-build
+  source: {repository: quay.io/desource/fedora, tag: build}
 
 run:
   path: src/build.sh
