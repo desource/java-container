@@ -1,57 +1,68 @@
-#!/usr/bin/env sh
-set -eux
+#!/usr/bin/env bash
+#
+# Download and build java container
+set -euo pipefail
 
-JAVA_VERSION=8.15.0.1-jdk8.0.92-linux_x64
-JAVA_MD5SUM=509fef886f7c6992d0f6f133c4928ec9
+out=$PWD/out
+rootfs=$PWD/rootfs
+glibc=$PWD/glibc
 
-SRC=$PWD/src
-OUT=$PWD/out
-ROOTFS=$PWD/rootfs
-GLIBC=$PWD/glibc
+# _download "version" "md5"
+_download() {  
+  curl -O \
+       -e http://www.azul.com/downloads/zulu/zulu-linux/ \
+       -L http://cdn.azul.com/zulu/bin/zulu${1}.tar.gz
+  echo "${2}  zulu${1}.tar.gz" | md5sum -c
 
-mkdir -p $ROOTFS/etc $ROOTFS/usr $ROOTFS/lib64 $OUT
+  tar xf zulu${1}.tar.gz
 
-curl -O \
-     -e http://www.azul.com/downloads/zulu/zulu-linux/ \
-     -L http://cdn.azul.com/zulu/bin/zulu$JAVA_VERSION.tar.gz
-echo "$JAVA_MD5SUM  zulu$JAVA_VERSION.tar.gz" | md5sum -c
+  mkdir -p ${rootfs}/usr
 
-tar xf zulu$JAVA_VERSION.tar.gz
-mv zulu$JAVA_VERSION/jre $ROOTFS/usr/
-rm -rf $ROOTFS/usr/jre/bin/{jjs,keytool,orbd,pack200,policytool,rmid,rmiregistry,servertool,tnameserv,unpack200} \
-   $ROOTFS/usr/jre/lib/ext/nashorn.jar
+  mv zulu${1}/jre ${rootfs}/usr/
+}
 
-cp \
-    $GLIBC/libc.so.* \
-    $GLIBC/dlfcn/libdl.so.* \
-    $GLIBC/nptl/libpthread.so.* \
-    $GLIBC/elf/ld-linux-x86-64.so.* \
-    $GLIBC/math/libm.so* \
-    $GLIBC/nss/libnss_files.so.* \
-    $GLIBC/resolv/libnss_dns.so.* \
-    $ROOTFS/lib64
+_build() {
+  mkdir -p ${rootfs}/etc ${rootfs}/lib64
+    
+  rm -rf ${rootfs}/usr/jre/bin/{jjs,keytool,orbd,pack200,policytool,rmid,rmiregistry,servertool,tnameserv,unpack200} \
+     ${rootfs}/usr/jre/lib/ext/nashorn.jar
+  
+  cp \
+      ${glibc}/libc.so.* \
+      ${glibc}/dlfcn/libdl.so.* \
+      ${glibc}/nptl/libpthread.so.* \
+      ${glibc}/elf/ld-linux-x86-64.so.* \
+      ${glibc}/math/libm.so* \
+      ${glibc}/nss/libnss_files.so.* \
+      ${glibc}/resolv/libnss_dns.so.* \
+      ${rootfs}/lib64
+  
+  ln -s /lib64 ${rootfs}/lib 
 
-ln -s /lib64 $ROOTFS/lib 
+  echo 'hosts: files mdns4_minimal dns [NOTFOUND=return] mdns4' >> ${rootfs}/etc/nsswitch.conf
 
-echo 'hosts: files mdns4_minimal dns [NOTFOUND=return] mdns4' >> $ROOTFS/etc/nsswitch.conf
-
-cat <<EOF > $ROOTFS/etc/passwd
+  cat <<EOF > ${rootfs}/etc/passwd
 root:x:0:0:root:/:/dev/null
 nobody:x:65534:65534:nogroup:/:/dev/null
 EOF
 
-cat <<EOF > $ROOTFS/etc/group
+  cat <<EOF > ${rootfs}/etc/group
 root:x:0:
 nogroup:x:65534:
 EOF
 
-echo 'networkaddress.cache.ttl=10' >> $ROOTFS/usr/jre/lib/security/java.security
-cp /etc/pki/ca-trust/extracted/java/cacerts $ROOTFS/usr/jre/lib/security/cacerts
+  echo 'networkaddress.cache.ttl=10' >> ${rootfs}/usr/jre/lib/security/java.security
+  cp /etc/pki/ca-trust/extracted/java/cacerts ${rootfs}/usr/jre/lib/security/cacerts
 
-cd $ROOTFS
-tar -cf $OUT/rootfs.tar .
+  tar -cf ${out}/rootfs.tar -C ${rootfs} .
+}
 
-cat <<EOF > $OUT/Dockerfile
+_dockerfile() {
+  cat <<EOF > ${out}/version
+${1}
+EOF
+  
+  cat <<EOF > ${out}/Dockerfile
 FROM scratch
 
 ADD rootfs.tar /
@@ -65,3 +76,8 @@ ENV \
 ENTRYPOINT [ "/usr/jre/bin/java" ]
 
 EOF
+}
+
+_download 8.17.0.3-jdk8.0.102-linux_x64 abd8b70fa1a743f74c43d21f0a9bea43
+_build
+_dockerfile  8u102
